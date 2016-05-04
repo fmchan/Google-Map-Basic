@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script type="text/javascript">
+    var map;
+    var geocoder;
+    var marker;
+    var infowindow;
+    var position = [22.286952, 114.153099];
+
+    function initialize() {
+        var latlng = new google.maps.LatLng(position[0], position[1]);
+        var myOptions = {
+            zoom: 16,
+            center: latlng,
+            panControl: true,
+            scrollwheel: false,
+            scaleControl: true,
+            overviewMapControl: true,
+            overviewMapControlOptions: { opened: true }
+            //mapTypeId: google.maps.MapTypeId.HYBRID
+        };
+        map = new google.maps.Map(document.getElementById("latlongmap"),
+                myOptions);
+        geocoder = new google.maps.Geocoder();
+        marker = new google.maps.Marker({
+            position: latlng,
+            map: map
+        });
+
+        map.streetViewControl = false;
+        infowindow = new google.maps.InfoWindow({
+            content: "(" + position[0] + "," + position[1] + ")"
+        });
+
+        google.maps.event.addListener(map, 'click', function(event) {
+            marker.setPosition(event.latLng);
+            var yeri = event.latLng;
+            saveCoordinate(yeri.lat(), yeri.lng());
+            infowindow.setContent("(" + position[0] + "," + position[1] + ")");
+        });
+
+
+        google.maps.event.addListener(map, 'mousemove', function(event) {
+            var yeri = event.latLng;
+            document.getElementById("mlat").innerHTML = "(" + yeri.lat().toFixed(6) + "," +yeri.lng().toFixed(6)+ ")";
+        });
+
+    }
+
+    function codeAddress() {
+        var address = document.getElementById("gadres").value;
+        if (address == '') {
+            alert("Address can not be empty!");
+            return;
+        }
+        geocoder.geocode({'address': address}, function(results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                if (results[0]) {
+                    map.setZoom(16);
+                    map.setCenter(results[0].geometry.location);
+                    marker.setPosition(results[0].geometry.location);
+
+                    saveCoordinate(results[0].geometry.location.lat(), results[0].geometry.location.lng());
+
+                    infowindow.setContent("(" + position[0] + "," + position[1] + ")");
+
+                    if (infowindow) {
+                        infowindow.close();
+                    }
+
+                    google.maps.event.addListener(marker, 'click', function() {
+                        infowindow.open(map, marker);
+                    });
+                    infowindow.open(map, marker);
+              } else
+                window.alert('No results found');
+            } else
+                window.alert('Geocoder failed due to: ' + status);
+        });
+    }
+
+    function codeCoordinate() {
+      var input = document.getElementById('gcods').value;
+      var latlngStr = input.split(',', 2);
+      var coordinate = {lat: parseFloat(latlngStr[0]), lng: parseFloat(latlngStr[1])};
+      geocoder.geocode({'location': coordinate}, function(results, status) {
+        if (status === google.maps.GeocoderStatus.OK) {
+          if (results[1]) {
+            map.setZoom(16);
+            map.setCenter(coordinate);
+            marker.setPosition(coordinate);
+
+            saveCoordinate(parseFloat(latlngStr[0]), parseFloat(latlngStr[1]));
+
+            infowindow.setContent(results[1].formatted_address);
+
+            google.maps.event.addListener(marker, 'click', function() {
+                infowindow.open(map, marker);
+            });
+            infowindow.open(map, marker);
+          } else
+            window.alert('No results found');
+        } else
+          window.alert('Geocoder failed due to: ' + status);
+      });
+    }
+
+    function saveCoordinate(lat, lng) {
+            position[0] = lat.toFixed(6);
+            position[1] = lng.toFixed(6);
+            var latlong = "(" + position[0] + "," + position[1] + ")";
+            document.getElementById('latlngspan').innerHTML =  latlong;
+            console.log(latlong);
+    }
+
+    function loadScript() {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://maps.googleapis.com/maps/api/js?sensor=false&callback=initialize';
+        document.body.appendChild(script);
+    }
+
+    window.onload = loadScript;
+
+    $(document).ready(function() {
+        $(document).on('submit','#searchaddress',function() {
+          codeAddress();
+          return false;
+        });
+        $(document).on('submit','#searchcoordinate',function() {
+          codeCoordinate();
+          return false;
+        });
+        $("#latlngspan").text("(" + position[0] + "," + position[1] + ")");
+    });
+</script>
+</head>
+<body>
+    <form id="searchaddress">
+        <div>
+            <label for="gadres">Place Name</label>
+            <input id="gadres" type="text" placeholder="Type a place name" required=""> 
+            <button title="Find Lat &amp; Long">Find</button>
+        </div>
+    </form>
+    <form id="searchcoordinate">
+        <div>
+            <label for="gcods">lat,long</label>
+            <input id="gcods" type="text" placeholder="Type a coordinate" required=""> 
+            <button title="Find Lat &amp; Long">Find</button>
+        </div>
+    </form>
+    <div id="latlongmap" style="width: 500px; height: 400px;"></div>
+    <div>current: <span id="mlat">(0,0)</span></div>
+    <div>marked: <span id="latlngspan">(0,0)</span></div>
+</body>
+</html>
